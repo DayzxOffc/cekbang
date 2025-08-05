@@ -3,108 +3,230 @@
 <head>
   <meta charset="UTF-8">
   <title>Code Extractor - Dzx Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+        --bg-color: #1a1a2e;
+        --card-bg: #22223b;
+        --text-color: #e0e0e0;
+        --accent-color: #4caf50;
+        --border-color: #44445c;
+        --placeholder-color: #888899;
+        --error-color: #ef5350;
+        --success-color: #66bb6a;
+    }
     body {
-      background: #121212;
-      color: #fff;
-      font-family: monospace;
+      background: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Roboto', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
       padding: 20px;
     }
-    textarea {
-      width: 100%;
-      height: 400px;
-      background: #1e1e1e;
-      color: #0f0;
-      padding: 10px;
-      margin-top: 10px;
-      border: 1px solid #333;
+    .container {
+        width: 100%;
+        max-width: 900px;
+        background: var(--card-bg);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
     }
-    input, button {
-      padding: 10px;
-      background: #222;
-      color: #fff;
-      border: 1px solid #444;
-      margin: 5px 0;
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: var(--accent-color);
+      font-weight: 500;
+    }
+    .header p {
+        text-align: center;
+        color: var(--placeholder-color);
+        margin-top: -10px;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    #urlInput {
+      flex-grow: 1;
+      padding: 12px;
+      background: var(--bg-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: monospace;
+      transition: all 0.3s ease;
+    }
+    #urlInput:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.3);
+    }
+    button {
+      padding: 12px 20px;
+      background: var(--accent-color);
+      color: var(--bg-color);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    button:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+    }
+    button:disabled {
+        background: var(--border-color);
+        color: var(--placeholder-color);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    textarea {
+      flex-grow: 1;
+      min-height: 400px;
+      background: var(--bg-color);
+      color: var(--success-color);
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      resize: vertical;
+    }
+    .status-message {
+        color: var(--placeholder-color);
+        text-align: center;
+        transition: opacity 0.3s ease;
     }
   </style>
 </head>
 <body>
-  <h2>🔎 Code Extractor - Dzx Tools</h2>
-  <p>Masukkan URL situs yang ingin diambil kodenya:</p>
-  <input type="text" id="urlInput" placeholder="https://contoh.com" style="width:100%">
-  <button onclick="fetchCode()">Ambil Kode</button>
-  <button onclick="copyCode()">Salin Semua Kode</button>
-  <br>
-  <textarea id="codeOutput" placeholder="Kode akan muncul di sini..."></textarea>
+  <div class="container">
+    <div class="header">
+      <h2>🔎 Code Extractor - Dzx Tools</h2>
+      <p>Masukkan URL situs yang ingin diambil kodenya:</p>
+    </div>
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="https://contoh.com">
+      <button id="fetchBtn" onclick="fetchCode()">Ambil Kode</button>
+      <button id="copyBtn" onclick="copyCode()">Salin Kode</button>
+    </div>
+    <textarea id="codeOutput" placeholder="Kode akan muncul di sini..."></textarea>
+    <p class="status-message" id="statusMessage"></p>
+  </div>
 
   <script>
     async function fetchCode() {
-      const url = document.getElementById('urlInput').value;
+      const urlInput = document.getElementById('urlInput');
       const codeOutput = document.getElementById('codeOutput');
-      if (!url) return alert("Masukkan URL!");
+      const fetchBtn = document.getElementById('fetchBtn');
+      const statusMessage = document.getElementById('statusMessage');
 
-      codeOutput.value = "⏳ Mengambil kode...";
+      const url = urlInput.value.trim();
+      if (!url) {
+          alert("Masukkan URL!");
+          return;
+      }
+
+      fetchBtn.disabled = true;
+      statusMessage.textContent = "⏳ Mengambil kode...";
+      codeOutput.value = "";
 
       try {
-        // Ambil halaman utama
-        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-        const html = await res.text();
+          const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+          const res = await fetch(proxyUrl);
+          if (!res.ok) throw new Error(`Gagal mengambil URL utama: ${res.statusText}`);
+          const html = await res.text();
 
-        // Parsing HTML untuk cari file CSS/JS
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        let cssCode = "";
-        let jsCode = "";
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
 
-        // Ambil file CSS
-        const cssLinks = [...doc.querySelectorAll('link[rel="stylesheet"]')];
-        for (let link of cssLinks) {
-          const href = new URL(link.href, url).href;
-          try {
-            const cssRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(href)}`);
-            const css = await cssRes.text();
-            cssCode += `/* File: ${href} */\n${css}\n\n`;
-          } catch {}
-        }
+          let cssCode = "";
+          const cssLinks = [...doc.querySelectorAll('link[rel="stylesheet"]')];
+          const inlineStyles = [...doc.querySelectorAll('style')];
+          
+          for (let link of cssLinks) {
+              const href = new URL(link.href, url).href;
+              try {
+                const cssRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(href)}`);
+                const css = await cssRes.text();
+                cssCode += `/* File: ${href} */\n${css}\n\n`;
+              } catch (e) {
+                console.error(`Gagal mengambil CSS dari ${href}:`, e);
+              }
+          }
+          for (let style of inlineStyles) {
+              cssCode += `/* Inline CSS */\n${style.textContent}\n\n`;
+          }
 
-        // Ambil file JS
-        const jsLinks = [...doc.querySelectorAll('script[src]')];
-        for (let script of jsLinks) {
-          const src = new URL(script.src, url).href;
-          try {
-            const jsRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(src)}`);
-            const js = await jsRes.text();
-            jsCode += `/* File: ${src} */\n${js}\n\n`;
-          } catch {}
-        }
+          let jsCode = "";
+          const jsLinks = [...doc.querySelectorAll('script[src]')];
+          const inlineScripts = [...doc.querySelectorAll('script:not([src])')];
+          
+          for (let script of jsLinks) {
+              const src = new URL(script.src, url).href;
+              try {
+                const jsRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(src)}`);
+                const js = await jsRes.text();
+                jsCode += `/* File: ${src} */\n${js}\n\n`;
+              } catch (e) {
+                console.error(`Gagal mengambil JS dari ${src}:`, e);
+              }
+          }
+          for (let script of inlineScripts) {
+              jsCode += `/* Inline JS */\n${script.textContent}\n\n`;
+          }
 
-        // Gabungkan semua
-        const finalHTML = `
-<!-- HTML Code -->
+          const finalOutput = `
 ${html}
 
-<!-- CSS Code -->
 <style>
 ${cssCode}
 </style>
 
-<!-- JS Code -->
 <script>
 ${jsCode}
 </script>
-        `.trim();
+          `.trim();
 
-        codeOutput.value = finalHTML;
+          codeOutput.value = finalOutput;
+          statusMessage.textContent = "✅ Kode berhasil diambil!";
       } catch (e) {
-        codeOutput.value = "❌ Gagal mengambil kode: " + e.message;
+          codeOutput.value = "❌ Gagal mengambil kode: " + e.message;
+          statusMessage.textContent = "❌ Gagal mengambil kode.";
+          console.error(e);
+      } finally {
+          fetchBtn.disabled = false;
       }
     }
 
-    function copyCode() {
+    async function copyCode() {
       const code = document.getElementById('codeOutput');
-      code.select();
-      document.execCommand('copy');
-      alert("✅ Kode berhasil disalin ke clipboard!");
+      const statusMessage = document.getElementById('statusMessage');
+      
+      if (code.value.trim() === "") {
+          statusMessage.textContent = "Tidak ada kode untuk disalin.";
+          return;
+      }
+
+      try {
+          await navigator.clipboard.writeText(code.value);
+          statusMessage.textContent = "✅ Kode berhasil disalin!";
+      } catch (err) {
+          // Fallback jika Clipboard API tidak didukung atau gagal
+          code.select();
+          document.execCommand('copy');
+          statusMessage.textContent = "✅ Kode berhasil disalin (metode lama)!";
+      }
     }
   </script>
 </body>
