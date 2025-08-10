@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Copy & Bug Hunter</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: #eee; text-align: center; }
+        h1 { color: #4CAF50; }
+        input, button { padding: 10px; margin: 5px; }
+        button { cursor: pointer; background: #4CAF50; border: none; color: white; }
+        button:hover { background: #45a049; }
+        pre { text-align: left; background: #222; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Web Copy & Bug Hunter</h1>
+    <p>Masukkan URL target di bawah ini, lalu pilih aksi:</p>
+    <input type="text" id="urlInput" placeholder="https://contoh.com" size="40">
+
+    <div>
+        <button id="fetchBtn">Analisis</button>
+        <button id="scanBtn">Scan</button>
+        <button id="cloneBtn">Clone</button>
+    </div>
+
+    <h3>Hasil:</h3>
+    <pre id="output">Belum ada data...</pre>
+
+<script>
+const API_BASE = "http://10.149.161.187:5000"; // Ganti IP jika perlu
+
+async function apiAnalyze(url, mode="simple"){
+    let res = await fetch(API_BASE + "/api/analyze", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url, mode, consent:true})
+    });
+    return await res.json();
+}
+
+async function apiClone(url, mode="simple"){
+    let res = await fetch(API_BASE + "/api/clone", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url, mode, consent:true})
+    });
+    let blob = await res.blob();
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "site.zip";
+    a.click();
+}
+
+async function apiScan(url){
+    let res = await fetch(API_BASE + "/api/scan", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({url, consent:true})
+    });
+    return await res.json();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const urlInput = document.getElementById("urlInput");
+    const output = document.getElementById("output");
+
+    document.getElementById("fetchBtn").addEventListener("click", async () => {
+        const url = urlInput.value;
+        const data = await apiAnalyze(url);
+        output.textContent = JSON.stringify(data, null, 2);
+    });
+
+    document.getElementById("scanBtn").addEventListener("click", async () => {
+        const url = urlInput.value;
+        const data = await apiScan(url);
+        output.textContent = JSON.stringify(data, null, 2);
+    });
+
+    document.getElementById("cloneBtn").addEventListener("click", async () => {
+        const url = urlInput.value;
+        await apiClone(url);
+    });
+});
+</script>
+</body>
+</html>
